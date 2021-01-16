@@ -1,11 +1,11 @@
 import os
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 import telebot
 from telebot import types
 
-load_dotenv('.env')
+# load_dotenv('.env')
 
-bot = telebot.TeleBot(os.getenv('TG_TOKEN'));
+bot = telebot.TeleBot(os.environ.get('TG_TOKEN'));
 
 stringList = {}
 stringList[1] = {"Blago": "Благоустройство", "Soc": "Социальное направление"}
