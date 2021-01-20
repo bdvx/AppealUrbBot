@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+import smtplib
 import webbrowser
 import telebot
 from telebot import types
@@ -8,6 +9,11 @@ from telebot import types
 load_dotenv('.env')
 
 bot = telebot.TeleBot(os.environ.get('TG_TOKEN'));
+
+sender = os.environ.get('SENDER')
+receivers = os.environ.get('RECEIVERS').split(',')
+login = os.environ.get('LOGIN')
+password = os.environ.get('PASSWORD')
 
 catList = {}
 catList[1] = {"Blago": "Благоустройство", "Soc": "Социальное направление"}
@@ -69,9 +75,24 @@ def callback_inline(call):
         data = call.data.split(':')
         subCategory = data[0]
         category = data[1]
-        if value == "Site":
+        if subCategory == "Site":
             webbrowser.open_new_tab("http://малаяохта.рф/")
-        elif value == "VK":
+        elif subCategory == "Uborka":
+
+            message = """Subject: SMTP e-mail test
+
+            This is a test e-mail message.
+            """
+        
+            try:
+                smtpObj = smtplib.SMTP_SSL("smtp.gmail.com", 465)
+                smtpObj.login(login, password)
+                smtpObj.sendmail(sender, receivers, message)  
+                print("Successfully sent email")
+                smtpObj.close()
+            except Exception:
+                print("Error: unable to send email")
+        elif subCategory == "VK":
             webbrowser.open_new_tab("https://vk.com/momoohta")
         else:
             topText = "Прошу Вас описать проблему с указанием адреса, приложить фотографию и указать свои контактные данные для связи"
