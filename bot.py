@@ -1,6 +1,8 @@
 import os
 from dotenv import load_dotenv
 import telebot
+import string
+import random
 from telebot import types
 import email, smtplib, ssl
 from email import encoders
@@ -61,6 +63,27 @@ def makeCategories(catList, catType):
     return markup
 
 
+def processPhotoMessage(message):
+    print('message =', message)
+    print('message.photo =', message.photo)
+    fileID = ''
+    if message.photo:
+        fileID = message.photo[-1].file_id
+    elif message.document:
+        if message.document.mime_type == "image/jpeg":
+            fileID = message.document.file_id
+        else:
+            return "Not an image"
+    print('fileID =', fileID)
+    file_info = bot.get_file(fileID)
+    print('file_info =', file_info)
+    downloaded_file = bot.download_file(file_info.file_path)
+    extension = file_info.file_path.rsplit('.', 1)[-1] # take last part after the dot
+    return {"file": downloaded_file, "extension": extension}
+    #with open("image.jpg", 'wb') as new_file:
+    #    new_file.write(downloaded_file)
+    #print 'file.file_path =', file.file_path
+
 @bot.callback_query_handler(func=lambda call: call.data.split(':')[0].startswith('categories'))
 def callback_inline(call):
     if call.message:
@@ -85,18 +108,20 @@ def callback_inline(call):
         subCategory = subList[data[1]][int(data[4])][data[3]]
         category = catList[int(data[2])][data[1]]
 
-        topText = "Прошу Вас описать проблему с указанием адреса, приложить фотографию и указать свои контактные данные для связи"
+        topText = "Прошу Вас описать проблему с указанием адреса и указать свои контактные данные для связи"
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=topText)
         bot.register_next_step_handler(call.message, problem_description, category, subCategory)
 
 
 def problem_description(message, category, subCategory):
     try:
-        print(category, subCategory)
-        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add('Нет Фото')
-        msg = bot.reply_to(message, 'Прошу Вас приложить фотографию', reply_markup=markup)
+        msg = bot.reply_to(message, 'Прошу Вас приложить фотографию, связанную с проблемой', reply_markup=markup)
+        #print("1",msg)
+    
         bot.register_next_step_handler(msg, problem_photo, category, subCategory, message.text)
+
     except Exception as e:
         bot.reply_to(message, 'Произошла ошибка при отправке описаия. Попробуйте отправить заявку заново.')
 
@@ -105,14 +130,16 @@ def problem_description(message, category, subCategory):
 def problem_photo(message, category, subCategory, description):
     try:
         msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
-        bot.register_next_step_handler(msg, problem_solution, category, subCategory, description)
+        photo = processPhotoMessage(msg.reply_to_message)
+        if photo == "Not an image":
+            bot.register_next_step_handler(message, problem_photo, category, subCategory, description)
+            return
+        bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, photo)
     except Exception as e:
         bot.reply_to(message, 'Произошла ошибка при отправке фото. Попробуйте отправить заявку заново.')
 
 
-
-
-def problem_solution(message, category, subCategory, description):
+def problem_solution(message, category, subCategory, description, photo = None):
     try:
         # Create a multipart message and set headers
         msg = MIMEMultipart()
@@ -129,6 +156,17 @@ def problem_solution(message, category, subCategory, description):
 
         # Add body to email
         msg.attach(MIMEText(body, "plain"))
+        photoPart = MIMEBase("application", "octet-stream")
+        photoPart.set_payload(photo["file"])
+        # Encode file in ASCII characters to send by email    
+        encoders.encode_base64(photoPart)
+
+        # Add header as key/value pair to attachment part
+        photoPart.add_header(
+            "Content-Disposition",
+            f"attachment; filename= {''.join(random.choices(string.ascii_uppercase + string.digits, k = 7))}.{photo['extension']}",
+        )
+        msg.attach(photoPart)
         try:
             sslContext = ssl.create_default_context()
             smtpObj = smtplib.SMTP_SSL("smtp.gmail.com", 465, context = sslContext)
@@ -136,7 +174,7 @@ def problem_solution(message, category, subCategory, description):
             smtpObj.sendmail(sender, receivers, msg.as_string())  
             print("Successfully sent email")
             smtpObj.close()
-            bot.send_message(message.from_user.id, "Ваше обращение принято. Если вы указали контактные данные, с Вами свяжутся по данному вопросу.")
+            bot.send_message(message.from_user.id, "Ваше обращение принято. Если Вы указали контактные данные, с Вами свяжутся по данному вопросу.")
         except Exception:
             print("Error: unable to send email")
     except Exception as e:
