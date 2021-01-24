@@ -11,15 +11,17 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 # local setup
-load_dotenv('.env')
+#load_dotenv('.env')
 
 bot = telebot.TeleBot(os.environ.get('TG_TOKEN'));
 
 sender = os.environ.get('SENDER')
 receivers = os.environ.get('RECEIVERS') #comma delimiter between recipients
-CC = os.environ.get('CC')
+sendCopyTo = os.environ.get('CC')
 login = os.environ.get('LOGIN')
 password = os.environ.get('PASSWORD')
+
+newAppeal = "\nДля нового обращения напишите /new"
 
 catList = {}
 catList[1] = {"Blago": "Благоустройство", "Soc": "Социальное направление"}
@@ -111,13 +113,13 @@ def callback_inline(call):
         category = catList[int(data[2])][categoryKey]
         if categoryKey == "Opeka":
             if subCategoryKey == "Inoe":
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="По иным вопросам обращайтесь в Местную администрацию МО Малая Охта по телефону 8 (812) 528-46-63")
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="По иным вопросам обращайтесь в Местную администрацию МО Малая Охта по телефону 8 (812) 528-46-63" + newAppeal)
                 return
             else:
-                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Раздел находится в работе. По данному вопросу обращайтесь в Местную администрацию МО малая Охта по телефону 8 (812) 528-46-63")
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Раздел находится в работе. По данному вопросу обращайтесь в Местную администрацию МО малая Охта по телефону 8 (812) 528-46-63" + newAppeal)
                 return
         elif categoryKey == "Soc":
-            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="По данному вопросу обращайтесь в Местную администрацию МО Малая Охта по телефону 8 (812) 528-46-63")
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="По данному вопросу обращайтесь в Местную администрацию МО Малая Охта по телефону 8 (812) 528-46-63" + newAppeal)
             return
 
         topText = "Укажите проблему"
@@ -131,7 +133,7 @@ def problem_description(message, category, subCategory):
         bot.register_next_step_handler(msg, problem_address, category, subCategory, message.text)
 
     except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке описания проблемы. Попробуйте отправить заявку заново.')
+        bot.reply_to(message, 'Произошла ошибка при отправке описания проблемы. Попробуйте отправить заявку заново.' + newAppeal)
         
 def problem_address(message, category, subCategory, description):
     try:
@@ -141,7 +143,7 @@ def problem_address(message, category, subCategory, description):
         bot.register_next_step_handler(msg, problem_contact, category, subCategory, description, message.text)
 
     except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке адреса. Попробуйте отправить заявку заново.')
+        bot.reply_to(message, 'Произошла ошибка при отправке адреса. Попробуйте отправить заявку заново.' + newAppeal)
 
 def problem_contact(message, category, subCategory, description, address):
     try:
@@ -153,7 +155,7 @@ def problem_contact(message, category, subCategory, description, address):
         bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, message.text)
 
     except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке контактных данных. Попробуйте отправить заявку заново.')
+        bot.reply_to(message, 'Произошла ошибка при отправке контактных данных. Попробуйте отправить заявку заново.' + newAppeal)
 
 def problem_photo(message, category, subCategory, description, address, contact, photoList = None):
     try:
@@ -179,7 +181,7 @@ def problem_photo(message, category, subCategory, description, address, contact,
             msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
             bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, contact, photoList)
     except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке фото. Попробуйте отправить заявку заново.')
+        bot.reply_to(message, 'Произошла ошибка при отправке фото. Попробуйте отправить заявку заново.' + newAppeal)
 
 
 def problem_solution(message, category, subCategory, description, address, contact, photoList = None):
@@ -189,7 +191,7 @@ def problem_solution(message, category, subCategory, description, address, conta
         msg["From"] = sender
         msg["To"] = receivers
         msg["Subject"] = "Новая заявка"
-        msg["Cc"] = CC  # Recommended for mass emails
+        msg["Cc"] = sendCopyTo  # Recommended for mass emails
 
         body = """
         Категория: """ + category + """
@@ -221,7 +223,7 @@ def problem_solution(message, category, subCategory, description, address, conta
             smtpObj.sendmail(sender, receivers, msg.as_string())  
             print("Successfully sent email")
             smtpObj.close()
-            bot.send_message(message.from_user.id, "Ваше обращение принято. Если Вы указали контактные данные, с Вами свяжутся по данному вопросу.")
+            bot.send_message(message.from_user.id, "Ваше обращение принято. Если Вы указали контактные данные, с Вами свяжутся по данному вопросу." + newAppeal)
         except Exception:
             print("Error: unable to send email")
     except Exception as e:
@@ -242,5 +244,4 @@ def get_text_messages(message):
     else:
         bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /help.")
 
-bot.enable_save_next_step_handlers(delay=2)
 bot.polling(none_stop=True, interval=0) 
