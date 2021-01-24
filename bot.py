@@ -214,8 +214,9 @@ def problem_solution(message, category, subCategory, description, address, photo
             bot.send_message(message.from_user.id, "Ваше обращение принято. Если Вы указали контактные данные, с Вами свяжутся по данному вопросу." + newAppeal)
         except Exception:
             print("Error: unable to send email")
+            bot.reply_to(message, 'Произошла ошибка при отправке заявки. Попробуйте отправить заявку заново.')
     except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке предложений. Попробуйте отправить заявку заново.')
+        bot.reply_to(message, 'Произошла ошибка при отправке заявки. Попробуйте отправить заявку заново.')
 
 
 
