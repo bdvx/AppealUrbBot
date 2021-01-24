@@ -134,6 +134,7 @@ def problem_description(message, category, subCategory):
         bot.reply_to(message, 'Произошла ошибка при отправке описания проблемы. Попробуйте отправить заявку заново.' + newAppeal)
         
 def problem_address(message, category, subCategory, description):
+    try:
         markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add('Нет Фото')
         msg = bot.reply_to(message, 'Прошу Вас приложить фотографии(или несколько), связанную с проблемой.\nОбщий объем фото не должен превышать 25мб', reply_markup=markup)
@@ -150,7 +151,7 @@ def problem_photo(message, category, subCategory, description, address, photoLis
             if photoList == None:
                 photoList = [];
             photoList.append(photo)
-            msg = bot.reply_to(message, 'Прикрепите еще фото или напишите Укажите Ваши контактные данные: имя, телефон или электронный адрес)
+            msg = bot.reply_to(message, 'Прикрепите еще фото или напишите Укажите Ваши контактные данные: имя, телефон или электронный адрес')
             bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, photoList)
             return
         if message.text == "Нет Фото":
