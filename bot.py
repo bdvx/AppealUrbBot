@@ -222,12 +222,12 @@ def problem_solution(message, category, subCategory, description, address, photo
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
 
-    if message.text == "/новая":
+    if message.text == "/новая" or message.text == "/new":
         bot.send_message(chat_id=message.from_user.id,
                      text="Выберите категорию:",
                      reply_markup=makeCategories(catList, "categories"),
                      parse_mode='HTML')
-    elif message.text == "/помощь":
+    elif message.text == "/помощь" or message.text == "/help":
         bot.send_message(message.from_user.id, "/новая - Новая заявка")
     else:
         bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /помощь")
