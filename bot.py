@@ -228,8 +228,8 @@ def get_text_messages(message):
                      reply_markup=makeCategories(catList, "categories"),
                      parse_mode='HTML')
     elif message.text == "/помощь":
-        bot.send_message(message.from_user.id, "/new - Новое обращение")
+        bot.send_message(message.from_user.id, "/новая - Новая заявка")
     else:
-        bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /help.")
+        bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /помощь")
 
 bot.polling(none_stop=True, interval=0) 
