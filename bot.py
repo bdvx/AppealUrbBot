@@ -217,8 +217,11 @@ def problem_solution(message, category, subCategory, description, address, conta
                 )
                 msg.attach(photoPart)
         try:
-            sslContext = ssl.create_default_context()
-            smtpObj = smtplib.SMTP_SSL("smtp.gmail.com", 465, context = sslContext)
+            #sslContext = ssl.create_default_context()
+            #smtpObj = smtplib.SMTP_SSL("smtp.gmail.com", 465, context = sslContext)
+            smtpObj = smtplib.SMTP("smtp.gmail.com:587")
+            smtpObj.ehlo()
+            smtpObj.starttls()
             smtpObj.login(login, password)
             smtpObj.sendmail(sender, receivers, msg.as_string())  
             print("Successfully sent email")
