@@ -39,7 +39,7 @@ subList["Soc"][2] = {"Prazd": "Праздничные мероприятия"}
 subList["Soc"][3] = {"Trud": "Трудоустройство несовершеннолетних"}
 
 subList["Opeka"] = {}
-subList["Opeka"][1] = {"Sdelk": "Сделки", "Opek": "Опека"}
+subList["Opeka"][1] = {"Sdelk": "Сделки", "Opek": "Опека", "Inoe": "Иное"}
 subList["Opeka"][2] = {"Razresh": "Разрешение на трудоустройство несовершеннолетних"}
 
 subList["Contacts"] = {}
@@ -105,41 +105,84 @@ def callback_inline(call):
     if call.message:
         data = call.data.split(':')
         # here we get string with subCategories: category short name: number in category dict: subCat short name: number in subCat dict
-        subCategory = subList[data[1]][int(data[4])][data[3]]
-        category = catList[int(data[2])][data[1]]
+        subCategoryKey = data[3]
+        categoryKey = data[1]
+        subCategory = subList[data[1]][int(data[4])][subCategoryKey]
+        category = catList[int(data[2])][categoryKey]
+        if categoryKey == "Opeka":
+            if subCategoryKey == "Inoe":
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="По иным вопросам обращайтесь в Местную администрацию МО Малая Охта по телефону 8 (812) 528-46-63")
+                return
+            else:
+                bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="Раздел находится в работе. По данному вопросу обращайтесь в Местную администрацию МО малая Охта по телефону 8 (812) 528-46-63")
+                return
+        elif categoryKey == "Soc":
+            bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text="По данному вопросу обращайтесь в Местную администрацию МО Малая Охта по телефону 8 (812) 528-46-63")
+            return
 
-        topText = "Прошу Вас описать проблему с указанием адреса и указать свои контактные данные для связи"
+        topText = "Укажите проблему"
         bot.edit_message_text(chat_id=call.message.chat.id, message_id=call.message.message_id, text=topText)
         bot.register_next_step_handler(call.message, problem_description, category, subCategory)
 
 
 def problem_description(message, category, subCategory):
     try:
-        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-        markup.add('Нет Фото')
-        msg = bot.reply_to(message, 'Прошу Вас приложить фотографию, связанную с проблемой', reply_markup=markup)
-        #print("1",msg)
-    
-        bot.register_next_step_handler(msg, problem_photo, category, subCategory, message.text)
+        msg = bot.reply_to(message, 'Укажите адрес')
+        bot.register_next_step_handler(msg, problem_address, category, subCategory, message.text)
 
     except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке описаия. Попробуйте отправить заявку заново.')
-
-
-
-def problem_photo(message, category, subCategory, description):
+        bot.reply_to(message, 'Произошла ошибка при отправке описания проблемы. Попробуйте отправить заявку заново.')
+        
+def problem_address(message, category, subCategory, description):
     try:
-        msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
-        photo = processPhotoMessage(msg.reply_to_message)
-        if photo == "Not an image":
-            bot.register_next_step_handler(message, problem_photo, category, subCategory, description)
+        msg = bot.reply_to(message, 'Укажите ваши контактные данные: имя, телефон или электронный адрес')
+        #print("1",msg)
+    
+        bot.register_next_step_handler(msg, problem_contact, category, subCategory, description, message.text)
+
+    except Exception as e:
+        bot.reply_to(message, 'Произошла ошибка при отправке адреса. Попробуйте отправить заявку заново.')
+
+def problem_contact(message, category, subCategory, description, address):
+    try:
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+        markup.add('Нет Фото')
+        msg = bot.reply_to(message, 'Прошу Вас приложить фотографии(или несколько), связанную с проблемой.\nОбщий объем фото не должен превышать 25мб', reply_markup=markup)
+        #print("1",msg)
+    
+        bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, message.text)
+
+    except Exception as e:
+        bot.reply_to(message, 'Произошла ошибка при отправке контактных данных. Попробуйте отправить заявку заново.')
+
+def problem_photo(message, category, subCategory, description, address, contact, photoList = None):
+    try:
+        if message.photo != None or message.document != None:
+            photo = processPhotoMessage(message)
+            if photoList == None:
+                photoList = [];
+            photoList.append(photo)
+            msg = bot.reply_to(message, 'Прикрепите еще фото или напишите Ваши предложения по выбранному направлению')
+            bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, contact, photoList)
             return
-        bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, photo)
+        if message.text == "Нет Фото":
+            msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
+            bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, contact)
+            return
+        #if photo == "Not an image":
+        #    bot.register_next_step_handler(message, problem_photo, category, subCategory, description)
+        #    return
+        if photoList != None:
+            problem_solution(message, category, subCategory, description, address, contact, photoList)
+        else:
+            print("text ", message)
+            msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
+            bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, contact, photoList)
     except Exception as e:
         bot.reply_to(message, 'Произошла ошибка при отправке фото. Попробуйте отправить заявку заново.')
 
 
-def problem_solution(message, category, subCategory, description, photo = None):
+def problem_solution(message, category, subCategory, description, address, contact, photoList = None):
     try:
         # Create a multipart message and set headers
         msg = MIMEMultipart()
@@ -151,22 +194,26 @@ def problem_solution(message, category, subCategory, description, photo = None):
         body = """
         Категория: """ + category + """
         Подкатегория: """ + subCategory + """
-        Описание проблемы и контактные данные: """ + description + """
+        Описание проблемы: """ + description + """
+        Адрес: """ + address + """
+        Контактные данные: """ + contact + """
         Предложение по решению: """ + message.text
 
         # Add body to email
         msg.attach(MIMEText(body, "plain"))
-        photoPart = MIMEBase("application", "octet-stream")
-        photoPart.set_payload(photo["file"])
-        # Encode file in ASCII characters to send by email    
-        encoders.encode_base64(photoPart)
+        if photoList != None:
+            for photo in photoList:
+                photoPart = MIMEBase("application", "octet-stream")
+                photoPart.set_payload(photo["file"])
+                # Encode file in ASCII characters to send by email    
+                encoders.encode_base64(photoPart)
 
-        # Add header as key/value pair to attachment part
-        photoPart.add_header(
-            "Content-Disposition",
-            f"attachment; filename= {''.join(random.choices(string.ascii_uppercase + string.digits, k = 7))}.{photo['extension']}",
-        )
-        msg.attach(photoPart)
+                # Add header as key/value pair to attachment part
+                photoPart.add_header(
+                    "Content-Disposition",
+                    f"attachment; filename= {''.join(random.choices(string.ascii_uppercase + string.digits, k = 7))}.{photo['extension']}",
+                )
+                msg.attach(photoPart)
         try:
             sslContext = ssl.create_default_context()
             smtpObj = smtplib.SMTP_SSL("smtp.gmail.com", 465, context = sslContext)
@@ -195,5 +242,5 @@ def get_text_messages(message):
     else:
         bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /help.")
 
-
+bot.enable_save_next_step_handlers(delay=2)
 bot.polling(none_stop=True, interval=0) 
