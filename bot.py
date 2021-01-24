@@ -151,7 +151,7 @@ def problem_photo(message, category, subCategory, description, address, photoLis
             if photoList == None:
                 photoList = [];
             photoList.append(photo)
-            msg = bot.reply_to(message, 'Прикрепите еще фото или напишите Укажите Ваши контактные данные: имя, телефон или электронный адрес')
+            msg = bot.reply_to(message, 'Прикрепите еще фото или укажите Ваши контактные данные: имя, телефон или электронный адрес')
             bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, photoList)
             return
         if message.text == "Нет Фото":
