@@ -21,7 +21,7 @@ sendCopyTo = os.environ.get('CC')
 login = os.environ.get('LOGIN')
 password = os.environ.get('PASSWORD')
 
-newAppeal = "\nДля нового обращения напишите /new"
+newAppeal = "\nДля нового обращения напишите /новая"
 
 catList = {}
 catList[1] = {"Blago": "Благоустройство", "Soc": "Социальное направление"}
@@ -66,8 +66,6 @@ def makeCategories(catList, catType):
 
 
 def processPhotoMessage(message):
-    print('message =', message)
-    print('message.photo =', message.photo)
     fileID = ''
     if message.photo:
         fileID = message.photo[-1].file_id
@@ -136,55 +134,42 @@ def problem_description(message, category, subCategory):
         bot.reply_to(message, 'Произошла ошибка при отправке описания проблемы. Попробуйте отправить заявку заново.' + newAppeal)
         
 def problem_address(message, category, subCategory, description):
-    try:
-        msg = bot.reply_to(message, 'Укажите ваши контактные данные: имя, телефон или электронный адрес')
-        #print("1",msg)
+        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+        markup.add('Нет Фото')
+        msg = bot.reply_to(message, 'Прошу Вас приложить фотографии(или несколько), связанную с проблемой.\nОбщий объем фото не должен превышать 25мб', reply_markup=markup)
     
-        bot.register_next_step_handler(msg, problem_contact, category, subCategory, description, message.text)
+        bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, message.text)
 
     except Exception as e:
         bot.reply_to(message, 'Произошла ошибка при отправке адреса. Попробуйте отправить заявку заново.' + newAppeal)
 
-def problem_contact(message, category, subCategory, description, address):
-    try:
-        markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-        markup.add('Нет Фото')
-        msg = bot.reply_to(message, 'Прошу Вас приложить фотографии(или несколько), связанную с проблемой.\nОбщий объем фото не должен превышать 25мб', reply_markup=markup)
-        #print("1",msg)
-    
-        bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, message.text)
-
-    except Exception as e:
-        bot.reply_to(message, 'Произошла ошибка при отправке контактных данных. Попробуйте отправить заявку заново.' + newAppeal)
-
-def problem_photo(message, category, subCategory, description, address, contact, photoList = None):
+def problem_photo(message, category, subCategory, description, address, photoList = None):
     try:
         if message.photo != None or message.document != None:
             photo = processPhotoMessage(message)
             if photoList == None:
                 photoList = [];
             photoList.append(photo)
-            msg = bot.reply_to(message, 'Прикрепите еще фото или напишите Ваши предложения по выбранному направлению')
-            bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, contact, photoList)
+            msg = bot.reply_to(message, 'Прикрепите еще фото или напишите Укажите Ваши контактные данные: имя, телефон или электронный адрес)
+            bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, photoList)
             return
         if message.text == "Нет Фото":
-            msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
-            bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, contact)
+            msg = bot.reply_to(message, 'Укажите Ваши контактные данные: имя, телефон или электронный адрес')
+            bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address)
             return
         #if photo == "Not an image":
         #    bot.register_next_step_handler(message, problem_photo, category, subCategory, description)
         #    return
         if photoList != None:
-            problem_solution(message, category, subCategory, description, address, contact, photoList)
+            problem_solution(message, category, subCategory, description, address, photoList)
         else:
-            print("text ", message)
-            msg = bot.reply_to(message, 'Напишите Ваши предложения по выбранному направлению')
-            bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, contact, photoList)
+            msg = bot.reply_to(message, 'Укажите Ваши контактные данные: имя, телефон или электронный адрес')
+            bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, photoList)
     except Exception as e:
         bot.reply_to(message, 'Произошла ошибка при отправке фото. Попробуйте отправить заявку заново.' + newAppeal)
 
 
-def problem_solution(message, category, subCategory, description, address, contact, photoList = None):
+def problem_solution(message, category, subCategory, description, address, photoList = None):
     try:
         # Create a multipart message and set headers
         msg = MIMEMultipart()
@@ -198,8 +183,7 @@ def problem_solution(message, category, subCategory, description, address, conta
         Подкатегория: """ + subCategory + """
         Описание проблемы: """ + description + """
         Адрес: """ + address + """
-        Контактные данные: """ + contact + """
-        Предложение по решению: """ + message.text
+        Контактные данные: """ + message.text
 
         # Add body to email
         msg.attach(MIMEText(body, "plain"))
@@ -237,12 +221,12 @@ def problem_solution(message, category, subCategory, description, address, conta
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
 
-    if message.text == "/new":
+    if message.text == "/новая":
         bot.send_message(chat_id=message.from_user.id,
                      text="Выберите категорию:",
                      reply_markup=makeCategories(catList, "categories"),
                      parse_mode='HTML')
-    elif message.text == "/help":
+    elif message.text == "/помощь":
         bot.send_message(message.from_user.id, "/new - Новое обращение")
     else:
         bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /help.")
