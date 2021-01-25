@@ -21,7 +21,7 @@ sendCopyTo = os.environ.get('CC')
 login = os.environ.get('LOGIN')
 password = os.environ.get('PASSWORD')
 
-newAppeal = "\nДля нового обращения напишите /новая"
+newAppeal = '\nДля нового обращения напишите "новая заявка"'
 
 catList = {}
 catList[1] = {"Blago": "Благоустройство", "Soc": "Социальное направление"}
@@ -137,7 +137,7 @@ def problem_address(message, category, subCategory, description):
     try:
         markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add('Нет Фото')
-        msg = bot.reply_to(message, 'Прошу Вас приложить фотографии(или несколько), связанную с проблемой.\nОбщий объем фото не должен превышать 25мб', reply_markup=markup)
+        msg = bot.reply_to(message, 'Прошу Вас приложить фотографию(или несколько, не более 3-х), связанную с проблемой.', reply_markup=markup)
     
         bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, message.text)
 
@@ -147,9 +147,14 @@ def problem_address(message, category, subCategory, description):
 def problem_photo(message, category, subCategory, description, address, photoList = None):
     try:
         if message.photo != None or message.document != None:
-            photo = processPhotoMessage(message)
             if photoList == None:
-                photoList = [];
+                photoList = []
+            elif len(photoList) > 3:
+                msg = bot.reply_to(message, 'Укажите Ваши контактные данные: имя, телефон или электронный адрес')
+                bot.register_next_step_handler(msg, problem_solution, category, subCategory, description, address, photoList)
+                return
+            print("length", len(photoList))
+            photo = processPhotoMessage(message)
             photoList.append(photo)
             msg = bot.reply_to(message, 'Прикрепите еще фото или укажите Ваши контактные данные: имя, телефон или электронный адрес')
             bot.register_next_step_handler(msg, problem_photo, category, subCategory, description, address, photoList)
@@ -189,7 +194,8 @@ def problem_solution(message, category, subCategory, description, address, photo
         # Add body to email
         msg.attach(MIMEText(body, "plain"))
         if photoList != None:
-            for photo in photoList:
+            # photoList[0:3] because of the failing upload logic on previous step
+            for photo in photoList[0:3]:
                 photoPart = MIMEBase("application", "octet-stream")
                 photoPart.set_payload(photo["file"])
                 # Encode file in ASCII characters to send by email    
@@ -223,14 +229,14 @@ def problem_solution(message, category, subCategory, description, address, photo
 @bot.message_handler(content_types=['text'])
 def get_text_messages(message):
 
-    if message.text == "/новая" or message.text == "/new":
+    if message.text.lower() == "новая заявка" or message.text == "/new":
         bot.send_message(chat_id=message.from_user.id,
                      text="Выберите категорию:",
                      reply_markup=makeCategories(catList, "categories"),
                      parse_mode='HTML')
-    elif message.text == "/помощь" or message.text == "/help":
-        bot.send_message(message.from_user.id, "/новая - Новая заявка")
+    elif message.text == "помощь" or message.text == "/help":
+        bot.send_message(message.from_user.id, 'Напишите "новая заявка" в чат для создания нового обращения')
     else:
-        bot.send_message(message.from_user.id, "Я Вас не понимаю. Для справки напишите /помощь")
+        bot.send_message(message.from_user.id, 'Я Вас не понимаю. Для справки напишите "помощь" в чат')
 
 bot.polling(none_stop=True, interval=0) 
