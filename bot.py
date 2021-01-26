@@ -1,4 +1,4 @@
-import os, request
+import os, requests
 from dotenv import load_dotenv
 import telebot
 import string
