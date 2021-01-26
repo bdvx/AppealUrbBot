@@ -1,4 +1,4 @@
-import os
+import os, request
 from dotenv import load_dotenv
 import telebot
 import string
@@ -238,5 +238,18 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, 'Напишите "новая заявка" в чат для создания нового обращения')
     else:
         bot.send_message(message.from_user.id, 'Я Вас не понимаю. Для справки напишите "помощь" в чат')
+
+
+url = os.environ['TRUSTIFI_URL']+'/api/i/v1/email'
+
+payload = "{\"recipients\":[{\"email\":\"besdenv@gmail.com\"}],\"title\":\"Title\",\"html\":\"Body\"}"
+headers = {
+  'x-trustifi-key': os.environ['TRUSTIFI_KEY'],
+  'x-trustifi-secret': os.environ['TRUSTIFI_SECRET'],
+  'Content-Type': 'application/json'
+}
+
+response = requests.request('POST', url, headers = headers, data = payload)
+print(response.json())
 
 bot.polling(none_stop=True, interval=0) 
