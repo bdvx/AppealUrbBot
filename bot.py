@@ -214,7 +214,7 @@ def problem_solution(message, category, subCategory, description, address, photo
             smtpObj.ehlo()
             smtpObj.starttls()
             smtpObj.login(login, password)
-            smtpObj.sendmail(sender, receivers, msg.as_string())  
+            smtpObj.sendmail(sender, receivers.split(","), msg.as_string())  
             print("Successfully sent email")
             smtpObj.quit()
 
