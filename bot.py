@@ -209,17 +209,18 @@ def problem_solution(message, category, subCategory, description, address, photo
                 msg.attach(photoPart)
         try:
             #sslContext = ssl.create_default_context()
-            #smtpObj = smtplib.SMTP_SSL("smtp.gmail.com", 465, context = sslContext)
-            smtpObj = smtplib.SMTP("smtp.gmail.com:587")
+            #smtpObj = smtplib.SMTP_SSL("SMTP.Office365.com", 465, context = sslContext)
+            smtpObj = smtplib.SMTP("smtp.office365.com", 587)
             smtpObj.ehlo()
             smtpObj.starttls()
             smtpObj.login(login, password)
             smtpObj.sendmail(sender, receivers, msg.as_string())  
             print("Successfully sent email")
-            smtpObj.close()
+            smtpObj.quit()
+
             bot.send_message(message.from_user.id, "Ваше обращение принято. Если Вы указали контактные данные, с Вами свяжутся по данному вопросу." + newAppeal)
-        except Exception:
-            print("Error: unable to send email")
+        except Exception as e:
+            print("Error: unable to send email", e)
             bot.reply_to(message, 'Произошла ошибка при отправке заявки. Попробуйте отправить заявку заново.')
     except Exception as e:
         bot.reply_to(message, 'Произошла ошибка при отправке заявки. Попробуйте отправить заявку заново.')
@@ -238,18 +239,5 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, 'Напишите "новая заявка" в чат для создания нового обращения')
     else:
         bot.send_message(message.from_user.id, 'Я Вас не понимаю. Для справки напишите "помощь" в чат')
-
-
-url = os.environ['TRUSTIFI_URL']+'/api/i/v1/email'
-
-payload = "{\"recipients\":[{\"email\":\"besdenv@gmail.com\"}],\"title\":\"Title\",\"html\":\"Body\"}"
-headers = {
-  'x-trustifi-key': os.environ['TRUSTIFI_KEY'],
-  'x-trustifi-secret': os.environ['TRUSTIFI_SECRET'],
-  'Content-Type': 'application/json'
-}
-
-response = requests.request('POST', url, headers = headers, data = payload)
-print(response.json())
 
 bot.polling(none_stop=True, interval=0) 
